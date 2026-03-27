@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Panel</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#121a33;
+      --panel2:#0f1730;
+      --text:#e8ecff;
+      --muted:#a9b3d7;
+      --line:rgba(255,255,255,.09);
+      --accent:#6ea8fe;
+      --accent2:#7c5cff;
+      --danger:#ff6b7a;
+      --success:#45d483;
+      --shadow:0 20px 50px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(124,92,255,.28), transparent 35%),
+        radial-gradient(circle at 80% 20%, rgba(110,168,254,.18), transparent 25%),
+        var(--bg);
+      color:var(--text);
+      min-height:100vh;
+    }
+    .wrap{max-width:1200px;margin:0 auto;padding:28px 18px 40px}
+    .top{
+      display:flex;
+      justify-content:space-between;
+      gap:16px;
+      align-items:flex-end;
+      margin-bottom:22px;
+    }
+    h1{margin:0;font-size:clamp(28px,4vw,44px);letter-spacing:-.03em}
+    p.sub{margin:8px 0 0;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:360px 1fr;gap:18px}
+    @media(max-width:960px){
+      .grid{grid-template-columns:1fr}
+      .top{align-items:flex-start;flex-direction:column}
+    }
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+      border:1px solid var(--line);
+      border-radius:22px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{padding:18px 18px 0}
+    .card .bd{padding:18px}
+    .title{font-size:18px;font-weight:700;margin:0 0 8px}
+    .muted{color:var(--muted);font-size:14px}
+    label{display:block;font-size:13px;margin:14px 0 8px;color:var(--muted)}
+    input,button{
+      width:100%;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:rgba(6,10,24,.72);
+      color:var(--text);
+      padding:14px 14px;
+      outline:none;
+      font-size:15px;
+    }
+    input:focus{
+      border-color:rgba(110,168,254,.7);
+      box-shadow:0 0 0 3px rgba(110,168,254,.15);
+    }
+    button{
+      cursor:pointer;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      border:none;
+      font-weight:700;
+      margin-top:14px;
+    }
+    button.secondary{
+      background:rgba(255,255,255,.04);
+      border:1px solid var(--line);
+      font-weight:600;
+    }
+    button.danger{
+      background:rgba(255,107,122,.12);
+      border:1px solid rgba(255,107,122,.28);
+      color:#ffd7db;
+    }
+    .toolbar{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:14px;
+    }
+    .stats{display:flex;gap:10px;flex-wrap:wrap}
+    .pill{
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:10px 14px;
+      background:rgba(255,255,255,.03);
+      color:var(--muted);
+      font-size:13px;
+    }
+    .list{display:grid;gap:12px}
+    .row{
+      display:grid;
+      grid-template-columns:1.2fr .8fr .7fr auto;
+      gap:12px;
+      align-items:center;
+      padding:14px;
+      background:rgba(255,255,255,.03);
+      border:1px solid var(--line);
+      border-radius:18px;
+    }
+    @media(max-width:820px){
+      .row{grid-template-columns:1fr;align-items:flex-start}
+    }
+    .key{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px}
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:12px;
+      border:1px solid var(--line);
+      width:fit-content;
+    }
+    .ok{
+      color:#b8ffd0;
+      background:rgba(69,212,131,.12);
+      border-color:rgba(69,212,131,.22);
+    }
+    .bad{
+      color:#ffd3d8;
+      background:rgba(255,107,122,.12);
+      border-color:rgba(255,107,122,.22);
+    }
+    .small{font-size:12px;color:var(--muted)}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .actions button{
+      width:auto;
+      margin-top:0;
+      padding:10px 12px;
+      border-radius:12px;
+    }
+    .login{max-width:420px;margin:80px auto;padding:18px}
+    .toast{
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      background:#101731;
+      border:1px solid var(--line);
+      color:var(--text);
+      padding:14px 16px;
+      border-radius:14px;
+      box-shadow:var(--shadow);
+      display:none;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h1>Admin Panel</h1>
+        <p class="sub">Generate access keys, set expiration dates, and delete keys from Render Postgres.</p>
+      </div>
+      <div class="stats">
+        <div class="pill" id="statTotal">Total: 0</div>
+        <div class="pill" id="statActive">Active: 0</div>
+        <div class="pill" id="statExpired">Expired: 0</div>
+      </div>
+    </div>
+
+    <div id="app"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let keys = [];
+    const app = document.getElementById("app");
+    const toast = document.getElementById("toast");
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.style.display = "block";
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => toast.style.display = "none", 2200);
+    }
+
+    function fmtDate(v) {
+      if (!v) return "Never";
+      const d = new Date(v);
+      return new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short"
+      }).format(d);
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function renderLogin() {
+      app.innerHTML = `
+        <div class="card login">
+          <div class="hd">
+            <p class="title">Admin login</p>
+            <p class="muted">Enter the admin password to open the dashboard.</p>
+          </div>
+          <div class="bd">
+            <label>Password</label>
+            <input id="password" type="password" placeholder="Admin password" />
+            <button id="loginBtn">Login</button>
+          </div>
+        </div>`;
+      document.getElementById("loginBtn").onclick = login;
+      document.getElementById("password").addEventListener("keydown", e => {
+        if (e.key === "Enter") login();
+      });
+    }
+
+    function renderDashboard() {
+      const total = keys.length;
+      const expired = keys.filter(k => k.expired).length;
+      const active = total - expired;
+
+      document.getElementById("statTotal").textContent = "Total: " + total;
+      document.getElementById("statActive").textContent = "Active: " + active;
+      document.getElementById("statExpired").textContent = "Expired: " + expired;
+
+      const rows = keys.map(k => {
+        const badge = k.expired
+          ? '<span class="badge bad">Expired</span>'
+          : '<span class="badge ok">Active</span>';
+
+        return `
+          <div class="row">
+            <div>
+              <div class="key">${k.key_value}</div>
+              <div class="small">${k.label ? escapeHtml(k.label) : "No label"} · Created ${fmtDate(k.created_at)}</div>
+            </div>
+            <div>
+              <div class="small">Expires</div>
+              <div>${fmtDate(k.expires_at)}</div>
+            </div>
+            <div>${badge}</div>
+            <div class="actions">
+              <button class="secondary" onclick="copyKey('${k.key_value.replaceAll("'", "\\'")}')">Copy</button>
+              <button class="danger" onclick="deleteKey(${k.id})">Delete</button>
+            </div>
+          </div>`;
+      }).join("");
+
+      app.innerHTML = `
+        <div class="grid">
+          <div class="card">
+            <div class="hd">
+              <p class="title">Generate key</p>
+              <p class="muted">Create a new access key and optionally set an expiration date.</p>
+            </div>
+            <div class="bd">
+              <label>Label</label>
+              <input id="label" placeholder="Example: VIP Access" />
+              <label>Expiration date and time</label>
+              <input id="expiresAt" type="datetime-local" />
+              <button id="createBtn">Generate Key</button>
+              <button class="secondary" id="logoutBtn" style="margin-top:10px">Logout</button>
+              <p class="small" style="margin-top:12px">Tip: leave expiration blank for no expiry.</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="hd">
+              <div class="toolbar">
+                <div>
+                  <p class="title" style="margin-bottom:4px">Keys</p>
+                  <div class="muted">Search and manage saved keys.</div>
+                </div>
+                <div style="min-width:260px;width:100%">
+                  <input id="search" placeholder="Search key or label..." />
+                </div>
+              </div>
+            </div>
+            <div class="bd">
+              <div class="list" id="list">${rows || '<div class="muted">No keys yet.</div>'}</div>
+            </div>
+          </div>
+        </div>`;
+
+      document.getElementById("createBtn").onclick = createKey;
+      document.getElementById("logoutBtn").onclick = logout;
+      document.getElementById("search").oninput = filterList;
+      filterList();
+    }
+
+    function filterList() {
+      const q = (document.getElementById("search")?.value || "").toLowerCase();
+      document.querySelectorAll(".row").forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(q) ? "" : "none";
+      });
+    }
+
+    async function login() {
+      const password = document.getElementById("password").value;
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password })
+      });
+
+      if (!res.ok) {
+        showToast("Login failed");
+        return;
+      }
+
+      showToast("Logged in");
+      await loadKeys();
+    }
+
+    async function logout() {
+      await fetch("/api/logout", { method: "POST" });
+      keys = [];
+      renderLogin();
+      showToast("Logged out");
+    }
+
+    async function loadKeys() {
+      const me = await fetch("/api/me").then(r => r.json());
+      if (!me.authenticated) {
+        renderLogin();
+        return;
+      }
+
+      const data = await fetch("/api/keys").then(r => r.json());
+      keys = data.keys || [];
+      renderDashboard();
+    }
+
+    async function createKey() {
+      const label = document.getElementById("label").value;
+      const expiresAt = document.getElementById("expiresAt").value;
+
+      const res = await fetch("/api/keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label, expiresAt })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.error || "Failed to create key");
+        return;
+      }
+
+      const data = await res.json();
+      keys.unshift(data.key);
+      renderDashboard();
+      showToast("Key generated");
+    }
+
+    async function deleteKey(id) {
+      if (!confirm("Delete this key?")) return;
+
+      const res = await fetch("/api/keys/" + id, { method: "DELETE" });
+      if (!res.ok) {
+        showToast("Delete failed");
+        return;
+      }
+
+      keys = keys.filter(k => k.id !== id);
+      renderDashboard();
+      showToast("Key deleted");
+    }
+
+    async function copyKey(key) {
+      try {
+        await navigator.clipboard.writeText(key);
+        showToast("Copied to clipboard");
+      } catch {
+        showToast("Copy failed");
+      }
+    }
+
+    window.copyKey = copyKey;
+    window.deleteKey = deleteKey;
+
+    loadKeys().catch(() => renderLogin());
+  </script>
+</body>
+</html>
