@@ -79,12 +79,10 @@ app.get("/health", async (_req, res) => {
 
 app.post("/api/login", (req, res) => {
   const { password } = req.body;
-
   if (password && password === ADMIN_PASSWORD) {
     req.session.authenticated = true;
     return res.json({ ok: true });
   }
-
   return res.status(401).json({ ok: false, error: "Invalid password" });
 });
 
@@ -108,6 +106,63 @@ app.get("/api/keys", requireAuth, async (_req, res) => {
   );
   res.json({ keys: rows });
 });
+
+app.post("/api/keys", requireAuth, async (req, res) => {
+  const label = (req.body.label || "").trim() || null;
+  const expiresAtRaw = req.body.expiresAt || null;
+
+  let expiresAt = null;
+  if (expiresAtRaw) {
+    const dt = new Date(expiresAtRaw);
+    if (Number.isNaN(dt.getTime())) {
+      return res.status(400).json({ error: "Invalid expiration date" });
+    }
+    expiresAt = dt.toISOString();
+  }
+
+  let keyValue = generateKey(20);
+  for (let i = 0; i < 5; i++) {
+    const exists = await pool.query(
+      "SELECT 1 FROM access_keys WHERE key_value = $1",
+      [keyValue]
+    );
+    if (exists.rowCount === 0) break;
+    keyValue = generateKey(20);
+  }
+
+  const { rows } = await pool.query(
+    `INSERT INTO access_keys (key_value, label, expires_at)
+     VALUES ($1, $2, $3)
+     RETURNING id, key_value, label, expires_at, created_at`,
+    [keyValue, label, expiresAt]
+  );
+
+  res.json({ key: rows[0] });
+});
+
+app.delete("/api/keys/:id", requireAuth, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid key id" });
+
+  const result = await pool.query("DELETE FROM access_keys WHERE id = $1", [id]);
+  if (result.rowCount === 0) return res.status(404).json({ error: "Key not found" });
+  res.json({ ok: true });
+});
+
+app.get("*", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+initDb()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("Failed to initialize database:", err);
+    process.exit(1);
+  });});
 
 app.post("/api/keys", requireAuth, async (req, res) => {
   const label = (req.body.label || "").trim() || null;
